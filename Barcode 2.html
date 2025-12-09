@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfect Barcode Labels - Zebra Printer</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Times New Roman", Times, serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .input-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 600px;
+        }
+        
+        .input-section h2 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .spec-box {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .spec-box h3 {
+            color: #2e7d32;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .spec-box p {
+            color: #2e7d32;
+            font-size: 13px;
+            margin-bottom: 5px;
+            line-height: 1.6;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .print-btn {
+            background-color: #2196F3;
+        }
+        
+        .print-btn:hover {
+            background-color: #0b7dda;
+        }
+        
+        /* EXACT SPECIFICATIONS: 1mm + 30mm + 3mm + 30mm + 3mm + 30mm + 1mm = 98mm (leaving 1mm for tolerance) */
+        .labels-container {
+            background: transparent;
+            padding: 0;
+            margin: 20px auto 0;
+            width: 99mm;
+        }
+
+        .label-row {
+            display: flex;
+            width: 99mm;
+            gap: 3mm;  /* 3mm gap between labels */
+            margin: 0 0 3mm 0;  /* 3mm gap between rows */
+            padding: 0 1mm;  /* 1mm left edge + 1mm right edge */
+            justify-content: flex-start;
+        }
+
+        .label {
+            width: 30mm;  /* Each sticker: 30mm wide */
+            height: 20mm; /* Each sticker: 20mm tall */
+            border: none;
+            padding: 1mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            overflow: hidden;
+            page-break-inside: avoid;
+            background: white;
+            box-sizing: border-box;
+        }
+        
+        .label-name {
+            font-size: 11px;
+            font-weight: bold;
+            text-align: center;
+            line-height: 1.1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+            height: 3.5mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-family: "Times New Roman", Times, serif;
+            margin-top: 1mm;
+        }
+        
+        .label-barcode {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            width: 100%;
+            padding: 0;
+            margin: 0.5mm 0;
+        }
+        
+        .label-barcode svg {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+        }
+        
+        .label-price {
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            line-height: 1;
+            height: 4mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            width: 100%;
+            font-family: "Times New Roman", Times, serif;
+        }
+        
+        @media print {
+            @page {
+                size: 99mm 20mm;
+                margin: 0;
+            }
+
+            body {
+                background: white;
+                padding: 0;
+                margin: 0;
+                width: 99mm;
+            }
+
+            .input-section {
+                display: none !important;
+            }
+
+            .labels-container {
+                padding: 0;
+                margin: 0;
+                width: 99mm;
+                background: transparent;
+            }
+
+            .label-row {
+                width: 99mm;
+                break-inside: avoid;
+                page-break-inside: avoid;
+                page-break-after: auto;
+                gap: 3mm;
+                margin: 0;
+                padding: 0 1mm;
+                justify-content: flex-start;
+            }
+            
+            .label {
+                border: none;
+                break-inside: avoid;
+                background: white;
+            }
+        }
+        
+        @media screen {
+            .labels-container {
+                border: 2px dashed #999;
+                background: #e0e0e0;
+                padding: 2mm;
+            }
+            
+            .label {
+                border: 1px solid #ccc;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="input-section">
+        <h2>🎯 Perfect Barcode Labels - Zebra Printer</h2>
+        
+        <div class="spec-box">
+            <h3>✅ EXACT SPECIFICATIONS</h3>
+            <p><strong>Roll Width:</strong> 99mm</p>
+            <p><strong>Sticker Size:</strong> 30mm × 20mm (each)</p>
+            <p><strong>Layout:</strong> 1mm edge | 30mm | 3mm gap | 30mm | 3mm gap | 30mm | 1mm edge</p>
+            <p><strong>Calculation:</strong> 1 + 30 + 3 + 30 + 3 + 30 + 1 = 98mm (1mm tolerance in 99mm roll)</p>
+            <p><strong>Barcode:</strong> Centered, optimized size for scanning</p>
+        </div>
+        
+        <div style="background: #fff3cd; padding: 15px; border-radius: 4px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+            <h3 style="color: #856404; margin-bottom: 10px; font-size: 16px;">⚙️ PRINTER SETTINGS</h3>
+            <p style="color: #856404; font-size: 13px; margin-bottom: 5px;"><strong>Paper Size:</strong> Use your printer's custom size settings</p>
+            <p style="color: #856404; font-size: 13px; margin-bottom: 5px;"><strong>Width:</strong> 99mm | <strong>Height:</strong> 20mm</p>
+            <p style="color: #856404; font-size: 13px; margin-bottom: 5px;"><strong>Margins:</strong> 0mm (all sides)</p>
+            <p style="color: #856404; font-size: 13px; margin-bottom: 5px;"><strong>Scale:</strong> 100% (No scaling)</p>
+            <p style="color: #856404; font-size: 13px; margin-bottom: 5px;"><strong>⚠️ IMPORTANT:</strong> Let printer use its own settings - don't override in print dialog</p>
+        </div>
+
+        <div style="background: #e8f5e9; padding: 15px; border-radius: 4px; margin-bottom: 20px; border-left: 4px solid #4caf50;">
+            <h3 style="color: #2e7d32; margin-bottom: 10px; font-size: 16px;">📁 BULK UPLOAD - Excel/CSV</h3>
+            <p style="color: #2e7d32; font-size: 13px; margin-bottom: 10px;">Upload an Excel (.xlsx, .xls) or CSV file with columns: <strong>Product Name, Barcode Number, Price, Quantity</strong></p>
+            <input type="file" id="fileUpload" accept=".xlsx,.xls,.csv" style="margin-bottom: 10px; padding: 8px; border: 1px solid #4caf50; border-radius: 4px; width: 100%;">
+            <button onclick="processFile()" style="background-color: #ff9800; margin-top: 0;">📤 Upload & Generate from File</button>
+            <p style="color: #666; font-size: 12px; margin-top: 10px;"><strong>Example format:</strong><br>
+            Row 1: Product Name | Barcode Number | Price | Quantity<br>
+            Row 2: JAR 469-35 | S001000001423 | 250.00 | 3<br>
+            Row 3: BOX 789-12 | S001000001424 | 500.00 | 6</p>
+        </div>
+
+        <div style="background: #fff3cd; padding: 10px; border-radius: 4px; margin-bottom: 20px; text-align: center; font-weight: bold; color: #856404;">
+            OR USE MANUAL ENTRY BELOW
+        </div>
+
+        <h3 style="margin-bottom: 15px; color: #333;">📝 Manual Entry (Single Product)</h3>
+
+        <div class="form-group">
+            <label for="productName">Product Name:</label>
+            <input type="text" id="productName" placeholder="e.g., JAR 469-35" value="JAR 469-35">
+        </div>
+        
+        <div class="form-group">
+            <label for="barcodeNumber">Barcode Number:</label>
+            <input type="text" id="barcodeNumber" placeholder="e.g., S001000001423" value="S001000001423">
+            <small style="color: #666; font-size: 12px;">Alphanumeric barcode (letters + numbers)</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="barcodeFormat">Barcode Format:</label>
+            <select id="barcodeFormat">
+                <option value="CODE128" selected>CODE128 (alphanumeric - RECOMMENDED)</option>
+                <option value="EAN13">EAN-13 (13 digits only)</option>
+                <option value="EAN8">EAN-8 (8 digits only)</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="price">Price (numbers only):</label>
+            <input type="number" id="price" placeholder="e.g., 500 or 250.00" value="250.00" step="0.01" min="0">
+            <small style="color: #666; font-size: 12px;">Enter price in LKR (currency will be added automatically as "LKR. XXX")</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="quantity">Number of Labels:</label>
+            <input type="number" id="quantity" value="9" min="1" max="100" placeholder="How many labels?">
+        </div>
+        
+        <button onclick="generateLabels()">🔄 Generate Labels</button>
+        <button class="print-btn" onclick="window.print()">🖨️ Print Labels</button>
+        
+        <div style="background: #e3f2fd; padding: 10px; border-radius: 4px; margin-top: 15px; font-size: 13px; color: #1976d2;">
+            <strong>💡 Printing Tips:</strong><br>
+            • Print 1 row first to test alignment<br>
+            • Calibrate printer if labels don't align<br>
+            • Use printer's default settings for best results<br>
+            • Check paper type is set to "Gap/Notch Labels"
+        </div>
+    </div>
+    
+    <div class="labels-container" id="labelsContainer">
+        <p style="color: #999; text-align: center; padding: 20px;">Click "Generate Labels" to create barcode labels</p>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        function processFile() {
+            const fileInput = document.getElementById('fileUpload');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('⚠️ Please select a file first');
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    let data;
+                    
+                    if (file.name.endsWith('.csv')) {
+                        // Process CSV
+                        const text = e.target.result;
+                        const lines = text.split('\n');
+                        data = [];
+                        
+                        for (let i = 1; i < lines.length; i++) { // Skip header row
+                            const line = lines[i].trim();
+                            if (line) {
+                                const values = line.split(',');
+                                if (values.length >= 3) {
+                                    data.push({
+                                        productName: values[0].trim(),
+                                        barcodeNumber: values[1].trim(),
+                                        price: parseFloat(values[2].trim()),
+                                        quantity: values[3] ? parseInt(values[3].trim()) : 1
+                                    });
+                                }
+                            }
+                        }
+                    } else {
+                        // Process Excel
+                        const workbook = XLSX.read(e.target.result, { type: 'binary' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                        
+                        data = [];
+                        for (let i = 1; i < jsonData.length; i++) { // Skip header row
+                            const row = jsonData[i];
+                            if (row.length >= 3 && row[0] && row[1] && row[2]) {
+                                data.push({
+                                    productName: String(row[0]).trim(),
+                                    barcodeNumber: String(row[1]).trim(),
+                                    price: parseFloat(row[2]),
+                                    quantity: row[3] ? parseInt(row[3]) : 1
+                                });
+                            }
+                        }
+                    }
+                    
+                    if (data.length === 0) {
+                        alert('⚠️ No valid data found in file. Please check the format.');
+                        return;
+                    }
+                    
+                    generateLabelsFromData(data);
+                    
+                    const totalLabels = data.reduce((sum, item) => sum + item.quantity, 0);
+                    alert('✅ Successfully loaded ' + data.length + ' products from file!\n📦 Total labels to generate: ' + totalLabels);
+                    
+                } catch (error) {
+                    console.error('File processing error:', error);
+                    alert('⚠️ Error processing file: ' + error.message);
+                }
+            };
+            
+            if (file.name.endsWith('.csv')) {
+                reader.readAsText(file);
+            } else {
+                reader.readAsBinaryString(file);
+            }
+        }
+        
+        function generateLabelsFromData(productsData) {
+            const format = document.getElementById('barcodeFormat').value;
+            const container = document.getElementById('labelsContainer');
+            container.innerHTML = '';
+            
+            let currentRow;
+            let labelIndex = 0;
+            let successCount = 0;
+            
+            // Create array with repeated products based on quantity
+            const allLabels = [];
+            productsData.forEach(product => {
+                for (let i = 0; i < product.quantity; i++) {
+                    allLabels.push({
+                        productName: product.productName,
+                        barcodeNumber: product.barcodeNumber,
+                        price: 'LKR. ' + product.price.toFixed(2)
+                    });
+                }
+            });
+            
+            // Generate labels
+            allLabels.forEach((labelData, idx) => {
+                if (labelIndex % 3 === 0) {
+                    currentRow = document.createElement('div');
+                    currentRow.className = 'label-row';
+                    container.appendChild(currentRow);
+                }
+                
+                const label = document.createElement('div');
+                label.className = 'label';
+                
+                // Product name at top
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'label-name';
+                nameDiv.textContent = labelData.productName;
+                label.appendChild(nameDiv);
+                
+                // Centered barcode in middle
+                const barcodeDiv = document.createElement('div');
+                barcodeDiv.className = 'label-barcode';
+                const barcodeSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                barcodeSvg.setAttribute('class', 'barcode-file-' + labelIndex);
+                barcodeDiv.appendChild(barcodeSvg);
+                label.appendChild(barcodeDiv);
+                
+                // Price at bottom
+                const priceDiv = document.createElement('div');
+                priceDiv.className = 'label-price';
+                priceDiv.textContent = labelData.price;
+                label.appendChild(priceDiv);
+                
+                currentRow.appendChild(label);
+                labelIndex++;
+            });
+            
+            // Generate barcodes
+            setTimeout(() => {
+                allLabels.forEach((labelData, idx) => {
+                    try {
+                        JsBarcode('.barcode-file-' + idx, labelData.barcodeNumber, {
+                            format: format,
+                            width: 2,
+                            height: 40,
+                            displayValue: false,
+                            margin: 2,
+                            textMargin: 0
+                        });
+                        successCount++;
+                    } catch (error) {
+                        console.error('Barcode generation error for ' + labelData.productName + ':', error);
+                    }
+                });
+                
+                if (successCount === allLabels.length) {
+                    console.log('✅ Successfully generated ' + successCount + ' barcode labels from file');
+                }
+            }, 100);
+        }
+        
+        function generateLabels() {
+            const productName = document.getElementById('productName').value;
+            const barcodeNumber = document.getElementById('barcodeNumber').value;
+            const priceInput = document.getElementById('price').value;
+            const quantity = parseInt(document.getElementById('quantity').value) || 3;
+            const format = document.getElementById('barcodeFormat').value;
+            
+            // Automatically format price with LKR
+            const priceNumber = parseFloat(priceInput);
+            if (isNaN(priceNumber)) {
+                alert('⚠️ Please enter a valid price number');
+                return;
+            }
+            const price = 'LKR. ' + priceNumber.toFixed(2);
+            
+            if (!productName || !barcodeNumber || !priceInput) {
+                alert('⚠️ Please fill in all fields');
+                return;
+            }
+            
+            if (quantity > 100) {
+                alert('⚠️ Maximum 100 labels at a time');
+                return;
+            }
+            
+            // Validate barcode number based on format
+            if (format === 'EAN13') {
+                if (!/^\d{12,13}$/.test(barcodeNumber)) {
+                    alert('⚠️ EAN-13 requires 12 or 13 digits only');
+                    return;
+                }
+            }
+            
+            if (format === 'EAN8') {
+                if (!/^\d{7,8}$/.test(barcodeNumber)) {
+                    alert('⚠️ EAN-8 requires 7 or 8 digits only');
+                    return;
+                }
+            }
+            
+            if (format === 'CODE128' && barcodeNumber.trim().length === 0) {
+                alert('⚠️ Please enter a barcode number');
+                return;
+            }
+            
+            const container = document.getElementById('labelsContainer');
+            container.innerHTML = '';
+            
+            let currentRow;
+            let successCount = 0;
+            
+            for (let i = 0; i < quantity; i++) {
+                if (i % 3 === 0) {
+                    currentRow = document.createElement('div');
+                    currentRow.className = 'label-row';
+                    container.appendChild(currentRow);
+                }
+                
+                const label = document.createElement('div');
+                label.className = 'label';
+                
+                // Product name at top
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'label-name';
+                nameDiv.textContent = productName;
+                label.appendChild(nameDiv);
+                
+                // Centered barcode in middle
+                const barcodeDiv = document.createElement('div');
+                barcodeDiv.className = 'label-barcode';
+                const barcodeSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                barcodeSvg.setAttribute('class', 'barcode-' + i);
+                barcodeDiv.appendChild(barcodeSvg);
+                label.appendChild(barcodeDiv);
+                
+                // Price at bottom
+                const priceDiv = document.createElement('div');
+                priceDiv.className = 'label-price';
+                priceDiv.textContent = price;
+                label.appendChild(priceDiv);
+                
+                currentRow.appendChild(label);
+            }
+            
+            // Generate barcodes with optimized size
+            setTimeout(() => {
+                for (let i = 0; i < quantity; i++) {
+                    try {
+                        JsBarcode('.barcode-' + i, barcodeNumber, {
+                            format: format,
+                            width: 2,            // Moderate bar width
+                            height: 40,          // Optimized height for 20mm sticker
+                            displayValue: false, // No text below barcode
+                            margin: 2,           // Small margin
+                            textMargin: 0
+                        });
+                        successCount++;
+                    } catch (error) {
+                        console.error('Barcode generation error:', error);
+                        alert('⚠️ Error generating barcode: ' + error.message + '\n\nPlease check your barcode number format.');
+                        return;
+                    }
+                }
+                
+                if (successCount === quantity) {
+                    console.log('✅ Successfully generated ' + quantity + ' barcode labels');
+                }
+            }, 100);
+        }
+        
+        // Auto-generate on page load
+        window.addEventListener('load', function() {
+            generateLabels();
+        });
+        
+        // Generate on Enter key press
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateLabels();
+            }
+        });
+    </script>
+</body>
+</html>
